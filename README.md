@@ -6,3 +6,12 @@ Subagent operating rules for Claude Code, based on Anthropic's published guidanc
 - `docs/subagent-playbook.md`: rationale and sources.
 - `.claude/agents/verifier.md`: read-only verification subagent (kept for isolation and restricted tools).
 - `.claude/skills/harness-audit/`: procedure to fold subagents into skills and prune the harness.
+
+## Install globally
+
+```bash
+git clone https://github.com/IsaiahAnson/Claude-Code-Subagent-Management ~/src/Claude-Code-Subagent-Management
+~/src/Claude-Code-Subagent-Management/install.sh
+```
+
+Appends the rules to `~/.claude/CLAUDE.md` inside marker comments (re-running replaces only that block) and installs the skill and agent. Prior versions go to `~/.claude/backups/subagent-rules-<timestamp>/`.
