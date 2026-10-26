@@ -1,47 +1,62 @@
 # Subagent playbook: rationale and sources
 
-`CLAUDE.md` holds the operative rules. This file explains where they come from so they can be revised when Anthropic's guidance changes.
+`CLAUDE.md` holds the operative rules, kept deliberately short. `.claude/skills/harness-audit/` holds the fold/prune procedure, loaded only when needed. This file explains where both come from.
 
-## Source status
+## Primary input: Switch Dimension video (YouTube `KwmrSON2n-g`)
 
-The originating request was to learn from YouTube video `KwmrSON2n-g`. Its transcript could not be retrieved: the build environment's network policy blocks youtube.com. The rules here are built from Anthropic's own published material instead (listed below). Once the transcript is available, diff its claims against this file and update `CLAUDE.md` where they differ.
+Rob (Switch Dimension) on Anthropic Applied AI's Oct 22, 2026 guidance. Summary of claims:
 
-## The direction of travel (late 2026)
+- **Fold subagents into one agent with skills.** Anthropic saw one agent plus skills frequently beat both a giant prompt and a subagent team on quality, cost, and speed. One customer's single loop ran about 2x faster than its multi-agent setup.
+- **Why subagent sprawl happens.** Teams build agent rosters that copy the org chart (Conway's law). Every handoff loses detail, and every added agent bloats the system prompt (the "Franken-prompt").
+- **The fix is progressive disclosure.** Expose short descriptions and load the full skill or tool on demand. This is a large part of how Claude Code's system prompt was cut by more than 80% for stronger models. It applies to stronger models only.
+- **Why now.** Much of the scaffolding was built for models from about 6 months ago. Add complexity only when it demonstrably improves outcomes. From Jediah Katz's "flywheel": log every temporary guardrail ("shim"), then delete shims that stop firing. A subagent is one kind of shim.
+- **How to fold.**
+  - Start with subagents that chain on each other's output or touch the same data.
+  - Keep subagents that exist because of restricted tools.
+  - Baseline with 10 prompts run twice each. The subagent prompt becomes a SKILL.md body. Move the old file aside and re-run.
+  - Keep the subagent only if the folded version scores worse.
+- **Where subagents still earn their place.**
+  - Context bloat.
+  - One agent keeps picking the wrong tools. Split by context, not org chart.
+  - Parallel research. Anthropic's research system beat single-agent Opus by about 90% on internal evals, at much higher token cost.
+  - Codebase search, noisy side tasks such as logs, and read-only reviewers.
+- **Where they don't.** Building interdependent pieces. Cognition example: parallel agents built a background and a bird that didn't match. Also dependent steps and back-and-forth with the user.
+- **Cull the harness too.**
+  - Every skill description and CLAUDE.md/AGENTS.md line costs context every turn.
+  - Skills can turn checklists into mandatory busywork. Cited Microsoft Research paper: "always run the full suite" fires even on one-line changes.
+  - Use `/skill-doctor` to find skills that never fire.
+  - For each CLAUDE.md line, ask whether the current model would do it anyway.
+- **Counterpoints.**
+  - Harnesses outside coding (e.g. Grokbot's coordinator and workers) are adding guardrails back.
+  - Cited July paper: cutting skills by up to 54% didn't reliably lower cost per task, because cached text is cheap.
+  - Anthropic's guidance has no pass rates or sample sizes, so test on your own setup.
 
-Anthropic's guidance has moved toward **fewer subagents, not more**:
+Verification status: the Oct 22 article, the 2x runtime figure, and the 80% prompt cut match the Anthropic article directly. The Microsoft Research paper, the July paper, and the Katz talk are cited by the video and were not independently checked.
 
-- **Jun 2025, multi-agent research system.** Multi-agent beat single-agent by 90.2% on breadth-first research, at ~15x the tokens of chat (single agents ~4x). Token spend explained ~80% of performance variance. Explicitly called a poor fit for most coding work, where agents need shared context.
-- **Jan 2026, "When to use multi-agent systems (and when not to)".** Three winning cases only: context protection, parallelization, specialization. Multi-agent typically costs 3-10x tokens. Anti-patterns: splitting by role, the "telephone game", splitting coupled work, premature complexity. Endorses blackbox verification subagents.
-- **Oct 2026, "When to fold subagents into your main agent loop".** Enterprise agents performed better, cheaper and faster after folding subagents back into one loop with progressive disclosure (skills, deferred tool search). One customer saw ~2x faster runtime. Keep subagents only for measured context bloat, parallel work with discardable context, or tool-selection/prompt-conflict problems. Split by context, not by team.
+## How the repo applies it
 
-Net: subagents are a context-management and parallelism tool, not an organizational pattern.
-
-## How each rule maps to a source
-
-| Rule in CLAUDE.md | Source |
+| Video / Anthropic point | Applied as |
 |---|---|
-| Default to one agent; three-condition gate | Jan 2026 blog; Oct 2026 article |
-| Don't split by role / coupled work | Jan 2026 blog (anti-patterns) |
-| Subagents start cold, cost multipliers | Claude Code costs docs; Jan 2026 blog |
-| Brief must include objective, format, tools, boundaries | Jun 2025 research system post |
-| Effort scaling table | Jun 2025 research system post (1 agent / 2-4 / 10+); capped at 3-5 per wave for Claude Code because of shared usage limits |
-| Cheaper model for grunt work | Claude Code sub-agents and costs docs |
-| Verifier with concrete criteria, avoid early victory | Jan 2026 blog |
-| Restate rules in the brief | Sub-agents docs: subagents don't inherit output style or memory; Explore/Plan skip CLAUDE.md |
-| Try compaction, skills, tool search, hooks first | Costs docs; Jan 2026 blog; Oct 2026 article |
+| One agent + skills by default | CLAUDE.md opening line; spawn only for 3 reasons |
+| Keep subagents for isolation / restricted tools | Third spawn reason; `verifier` kept (read-only tools, unanchored review) |
+| Don't parallelize interdependent building | Explicit "never split" rule |
+| Cull CLAUDE.md lines the model would follow anyway | CLAUDE.md cut from ~75 lines to ~20; generic delegation advice removed |
+| Progressive disclosure | Fold/prune procedure lives in a skill, not CLAUDE.md |
+| Skills cause busywork when mandatory | Rule: write steps as conditional, scale to change size |
+| Fold procedure, shims, `/skill-doctor` | `harness-audit` skill |
+| Trimming may not cut cost | Stated as a caveat in the audit report |
 
-## Mechanics worth remembering
+## Supporting Anthropic sources
 
-- Built-ins: Explore (read-only, one-shot, skips CLAUDE.md), Plan (read-only, one-shot), general-purpose (all tools, resumable).
-- Model resolution: per-call `model` > definition `model` > `CLAUDE_CODE_SUBAGENT_MODEL` > parent model.
-- Limits: nesting depth 3, 20 concurrent by default.
-- `/usage` on subscription plans attributes usage to subagents; check it if spend climbs.
-- Keep custom agent `description` fields short; they are always in context. Detail goes in the body.
+- **Jun 2025, multi-agent research system.** About 15x the tokens of chat. Poor fit for coding work that needs shared context.
+- **Jan 2026, "When to use multi-agent systems".** Three cases: context protection, parallelism, specialization. 3-10x tokens. Anti-patterns: role splits, the telephone game.
+- **Oct 22, 2026, "When to fold subagents into your main agent loop".** The article the video covers.
+- **Claude Code docs.** Subagents don't inherit conversation history, output style, or memory, and Explore/Plan skip CLAUDE.md. Pass cheaper models for grunt work.
 
-## Sources
-
+Links:
+- https://www.youtube.com/watch?v=KwmrSON2n-g
+- https://claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop
+- https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them
+- https://www.anthropic.com/engineering/multi-agent-research-system
 - https://code.claude.com/docs/en/sub-agents
 - https://code.claude.com/docs/en/costs
-- https://www.anthropic.com/engineering/multi-agent-research-system
-- https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them
-- https://claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop
