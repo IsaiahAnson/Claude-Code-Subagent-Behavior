@@ -9,6 +9,15 @@ Subagent operating rules for Claude Code, based on Anthropic's published guidanc
 
 ## Install globally
 
+Windows (PowerShell):
+
+```powershell
+git clone https://github.com/IsaiahAnson/Claude-Code-Subagent-Management $HOME\src\Claude-Code-Subagent-Management
+powershell -ExecutionPolicy Bypass -File $HOME\src\Claude-Code-Subagent-Management\install.ps1
+```
+
+macOS / Linux:
+
 ```bash
 git clone https://github.com/IsaiahAnson/Claude-Code-Subagent-Management ~/src/Claude-Code-Subagent-Management
 ~/src/Claude-Code-Subagent-Management/install.sh
